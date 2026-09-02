@@ -13,7 +13,7 @@ const NAV: { href: string; label: string; capability: Capability }[] = [
   { href: "/invoices", label: "Invoices", capability: "invoices:read" },
   { href: "/inbox", label: "Inbox", capability: "messages:read" },
   { href: "/fleet", label: "Fleet", capability: "fleet:read" },
-  { href: "/staff", label: "Staff", capability: "staff:read" },
+  { href: "/staff", label: "Employees", capability: "staff:read" },
   { href: "/hr/directory", label: "Staff Directory", capability: "directory:read" },
   { href: "/hr/leave", label: "Leave Requests", capability: "hr:read" },
   { href: "/settings/users", label: "Staff Accounts", capability: "users:read" },

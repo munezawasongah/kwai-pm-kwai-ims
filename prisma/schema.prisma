@@ -16,6 +16,25 @@ datasource db {
 // ENUMS
 // ============================================================================
 
+enum EmploymentType {
+  PERMANENT
+  FIXED_TERM_CONTRACT
+  PROBATION
+  CASUAL
+  INTERNSHIP
+  CONSULTANT
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  RESIGNED
+  TERMINATED
+  CONTRACT_ENDED
+  RETIRED
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -183,6 +202,19 @@ model User {
   // Relations Act sets a statutory minimum of 28 days annual leave; confirm the
   // current figure with your HR adviser before relying on the default.
   annualLeaveDays Int @default(28)
+
+  // Employment record. A departed employee is never deleted — payroll, tax and
+  // labour-law obligations outlast the employment itself, and a deleted record
+  // would orphan their bookings, expenses and leave history. Departure is recorded
+  // by setting employmentStatus and endDate; `isActive` separately controls
+  // whether they can still sign in.
+  employmentType   EmploymentType   @default(PERMANENT)
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  contractEndDate  DateTime?
+  endDate          DateTime?
+  exitReason       String?
+
+  @@index([employmentStatus])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

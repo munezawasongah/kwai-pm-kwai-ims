@@ -44,8 +44,8 @@ export const PERMISSIONS = {
   // Operations
   "fleet:read": ["ADMIN", "MANAGER", "OPERATIONS"],
   "fleet:write": ["ADMIN", "MANAGER", "OPERATIONS"],
-  "staff:read": ["ADMIN", "MANAGER", "OPERATIONS"],
-  "staff:write": ["ADMIN", "MANAGER", "OPERATIONS"],
+  "staff:read": ["ADMIN", "MANAGER", "OPERATIONS", "HR"],
+  "staff:write": ["ADMIN", "MANAGER", "OPERATIONS", "HR"],
 
   // Messaging
   "messages:read": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS"],

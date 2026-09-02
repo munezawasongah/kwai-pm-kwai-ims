@@ -18,6 +18,8 @@ const createUserSchema = z.object({
   startDate: z.coerce.date().optional().nullable(),
   emergencyName: z.string().max(80).optional().or(z.literal("")),
   emergencyPhone: z.string().max(40).optional().or(z.literal("")),
+  employmentType: z.enum(["PERMANENT","FIXED_TERM_CONTRACT","PROBATION","CASUAL","INTERNSHIP","CONSULTANT"]).default("PERMANENT"),
+  contractEndDate: z.coerce.date().optional().nullable(),
   // Driver/guide extras, only used when role is DRIVER_GUIDE
   licenseNumber: z.string().max(60).optional().or(z.literal("")),
   languagesSpoken: z.string().max(200).optional().or(z.literal("")),
@@ -73,6 +75,8 @@ export async function POST(req: NextRequest) {
       startDate: d.startDate ?? null,
       emergencyName: d.emergencyName || null,
       emergencyPhone: d.emergencyPhone || null,
+      employmentType: d.employmentType,
+      contractEndDate: d.contractEndDate ?? null,
       // A driver/guide needs a staff profile before they can be assigned to a trip.
       ...(d.role === "DRIVER_GUIDE" && {
         staffProfile: {

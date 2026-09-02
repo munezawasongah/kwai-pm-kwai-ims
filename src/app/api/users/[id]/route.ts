@@ -12,6 +12,12 @@ const updateUserSchema = z.object({
   startDate: z.coerce.date().optional().nullable(),
   emergencyName: z.string().max(80).optional().nullable(),
   emergencyPhone: z.string().max(40).optional().nullable(),
+  employmentType: z.enum(["PERMANENT","FIXED_TERM_CONTRACT","PROBATION","CASUAL","INTERNSHIP","CONSULTANT"]).optional(),
+  employmentStatus: z.enum(["ACTIVE","ON_LEAVE","SUSPENDED","RESIGNED","TERMINATED","CONTRACT_ENDED","RETIRED"]).optional(),
+  contractEndDate: z.coerce.date().optional().nullable(),
+  endDate: z.coerce.date().optional().nullable(),
+  exitReason: z.string().max(500).optional().nullable(),
+  annualLeaveDays: z.number().int().min(0).max(365).optional(),
   isActive: z.boolean().optional(),
   phone: z.string().max(40).optional().nullable(),
   password: z.string().min(10, "Password must be at least 10 characters").optional(),
@@ -62,6 +68,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.startDate !== undefined && { startDate: d.startDate }),
       ...(d.emergencyName !== undefined && { emergencyName: d.emergencyName }),
       ...(d.emergencyPhone !== undefined && { emergencyPhone: d.emergencyPhone }),
+      ...(d.employmentType !== undefined && { employmentType: d.employmentType }),
+      ...(d.employmentStatus !== undefined && { employmentStatus: d.employmentStatus }),
+      ...(d.contractEndDate !== undefined && { contractEndDate: d.contractEndDate }),
+      ...(d.endDate !== undefined && { endDate: d.endDate }),
+      ...(d.exitReason !== undefined && { exitReason: d.exitReason }),
+      ...(d.annualLeaveDays !== undefined && { annualLeaveDays: d.annualLeaveDays }),
+      // Ending employment also removes sign-in access; the record itself is kept.
+      ...(d.employmentStatus !== undefined &&
+        !["ACTIVE", "ON_LEAVE", "SUSPENDED"].includes(d.employmentStatus) && { isActive: false }),
       ...(d.password !== undefined && { passwordHash: await bcrypt.hash(d.password, 10) }),
       // Switching someone to driver/guide requires a staff profile to exist.
       ...(d.role === "DRIVER_GUIDE" && {

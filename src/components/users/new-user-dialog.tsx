@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { ALL_ROLES, ROLE_DESCRIPTIONS } from "@/lib/permissions";
 import { buildStaffEmail, COMPANY_EMAIL_DOMAIN } from "@/lib/email-conventions";
 import { designationsByDepartment, findDesignation } from "@/lib/designations";
+import { EMPLOYMENT_TYPES } from "@/lib/employment";
 
 function suggestPassword() {
   // Readable but not guessable — staff must be able to relay it over the phone.
@@ -54,6 +55,8 @@ export function NewUserDialog() {
       jobTitle: jobTitle === "__other" ? customTitle : jobTitle,
       department,
       employeeNumber: form.get("employeeNumber") || "",
+      employmentType: form.get("employmentType") || "PERMANENT",
+      contractEndDate: form.get("contractEndDate") || undefined,
       startDate: form.get("startDate") || undefined,
       emergencyName: form.get("emergencyName") || "",
       emergencyPhone: form.get("emergencyPhone") || "",
@@ -226,6 +229,21 @@ export function NewUserDialog() {
             <div>
               <label className="mb-1 block text-sm font-medium">Department</label>
               <Input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Operations" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Employment type</label>
+                <Select name="employmentType" defaultValue="PERMANENT">
+                  {EMPLOYMENT_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Contract end (if fixed-term)</label>
+                <Input name="contractEndDate" type="date" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
