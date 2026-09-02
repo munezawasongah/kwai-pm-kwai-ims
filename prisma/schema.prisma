@@ -1,0 +1,567 @@
+// ============================================================================
+// kwai pm kwai — Internal Management System
+// Prisma Schema — PostgreSQL
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_AGENT
+  OPERATIONS
+  ACCOUNTANT
+  DRIVER_GUIDE
+}
+
+enum ClientSource {
+  WEBSITE
+  WHATSAPP
+  EMAIL
+  REFERRAL
+  WALK_IN
+  OTA
+  SOCIAL_MEDIA
+  OTHER
+}
+
+enum BookingStatus {
+  INQUIRY
+  QUOTED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TripType {
+  SAFARI
+  ZANZIBAR_BEACH
+  KILIMANJARO
+  CITY_TOUR
+  AIRPORT_TRANSFER
+  CAR_RENTAL
+  CROSS_BORDER
+  CUSTOM
+}
+
+enum Currency {
+  TZS
+  USD
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentType {
+  DEPOSIT
+  BALANCE
+  FULL
+  REFUND
+}
+
+enum PaymentMethod {
+  MPESA
+  TIGO_PESA
+  AIRTEL_MONEY
+  BANK_TRANSFER
+  CASH
+  CARD
+  OTHER
+}
+
+enum ExpenseCategory {
+  DRIVER_ALLOWANCE
+  FUEL
+  PARK_FEES
+  HOTEL_ACCOMMODATION
+  FOOD
+  VEHICLE_MAINTENANCE
+  PERMITS
+  GUIDE_FEE
+  MISC
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  IN_SERVICE
+  OUT_OF_SERVICE
+}
+
+enum StaffAssignmentRole {
+  DRIVER
+  GUIDE
+  DRIVER_GUIDE
+}
+
+enum MessageChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+  INTERNAL_NOTE
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum NotificationTriggerType {
+  BOOKING_CONFIRMATION
+  PRE_ARRIVAL_REMINDER
+  POST_TRIP_THANK_YOU
+  PAYMENT_REMINDER
+  QUOTE_FOLLOW_UP
+  STAFF_SCHEDULE_ALERT
+  DOCUMENT_EXPIRY_ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+// ============================================================================
+// USERS & STAFF
+// ============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  phone         String?
+  passwordHash  String
+  firstName     String
+  lastName      String
+  role          Role     @default(SALES_AGENT)
+  isActive      Boolean  @default(true)
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assignedBookings   Booking[]          @relation("AssignedAgent")
+  createdInvoices    Invoice[]          @relation("InvoiceCreatedBy")
+  sentMessages       Message[]          @relation("MessageSentBy")
+  staffProfile       StaffProfile?
+  activityLogs       ActivityLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+// Extended profile for drivers/guides (linked 1:1 to a User with role DRIVER_GUIDE)
+model StaffProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber     String?
+  licenseExpiry     DateTime?
+  languagesSpoken   String[] @default([])
+  yearsExperience   Int?
+  emergencyContact  String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  assignments       StaffAssignment[]
+
+  @@map("staff_profiles")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("activity_logs")
+}
+
+// ============================================================================
+// CLIENT / CRM
+// ============================================================================
+
+model Client {
+  id             String        @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String        // E.164 format, used for WhatsApp
+  whatsappOptIn  Boolean       @default(true)
+  nationality    String?
+  passportNumber String?
+  dateOfBirth    DateTime?
+  source         ClientSource  @default(OTHER)
+  preferences    Json?         // dietary, accommodation, interests, etc.
+  tags           String[]      @default([])
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  bookings       Booking[]
+  messages       Message[]
+  invoices       Invoice[]
+  notifications  ScheduledNotification[]
+
+  @@index([phone])
+  @@index([email])
+  @@map("clients")
+}
+
+// ============================================================================
+// BOOKINGS & ITINERARIES
+// ============================================================================
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingRef      String        @unique // e.g. KPK-2026-0001
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  assignedAgentId String?
+  assignedAgent   User?         @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+
+  tripType        TripType
+  status          BookingStatus @default(INQUIRY)
+  title           String
+  startDate       DateTime?
+  endDate         DateTime?
+  numAdults       Int           @default(1)
+  numChildren     Int           @default(0)
+  currency        Currency      @default(USD)
+
+  quotedTotal     Decimal?      @db.Decimal(12, 2)
+  confirmedTotal  Decimal?      @db.Decimal(12, 2)
+
+  source          ClientSource  @default(OTHER)
+  internalNotes   String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  itinerary       Itinerary?
+  invoices        Invoice[]
+  expenses        Expense[]
+  staffAssignments StaffAssignment[]
+  vehicleAssignments VehicleAssignment[]
+  messages        Message[]
+  scheduledNotifications ScheduledNotification[]
+  documents       Document[]
+
+  @@index([status])
+  @@index([startDate])
+  @@map("bookings")
+}
+
+model Itinerary {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  pdfUrl      String?  // last generated branded PDF
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  days        ItineraryDay[]
+
+  @@map("itineraries")
+}
+
+model ItineraryDay {
+  id           String   @id @default(cuid())
+  itineraryId  String
+  itinerary    Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  dayNumber    Int
+  date         DateTime?
+  title        String
+  description  String?
+
+  activities   ItineraryActivity[]
+
+  @@unique([itineraryId, dayNumber])
+  @@map("itinerary_days")
+}
+
+model ItineraryActivity {
+  id              String       @id @default(cuid())
+  itineraryDayId  String
+  itineraryDay    ItineraryDay @relation(fields: [itineraryDayId], references: [id], onDelete: Cascade)
+  order           Int          @default(0)
+  name            String
+  description     String?
+  location        String?
+  startTime       String?      // "08:00"
+  costItemType    String?      // "park_fee", "accommodation", "transfer", "activity", "meal"
+  costAmount      Decimal?     @db.Decimal(12, 2)
+  costCurrency    Currency     @default(USD)
+  isIncluded      Boolean      @default(true) // included in package vs optional add-on
+
+  @@map("itinerary_activities")
+}
+
+// ============================================================================
+// INVOICING & PAYMENTS
+// ============================================================================
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique // e.g. INV-2026-0001
+  bookingId       String
+  booking         Booking       @relation(fields: [bookingId], references: [id])
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  createdById     String?
+  createdBy       User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+
+  currency        Currency      @default(USD)
+  exchangeRateToUSD Decimal?    @db.Decimal(12, 6) // snapshot rate if currency = TZS
+
+  subtotal        Decimal       @db.Decimal(12, 2)
+  taxAmount       Decimal       @default(0) @db.Decimal(12, 2)
+  discountAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount     Decimal       @db.Decimal(12, 2)
+
+  depositRequired Decimal?      @db.Decimal(12, 2)
+  amountPaid      Decimal       @default(0) @db.Decimal(12, 2)
+  balanceDue      Decimal       @db.Decimal(12, 2)
+
+  status          InvoiceStatus @default(DRAFT)
+  dueDate         DateTime?
+  pdfUrl          String?
+  notes           String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  lineItems       InvoiceLineItem[]
+  payments        Payment[]
+  scheduledNotifications ScheduledNotification[]
+
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  lineTotal   Decimal  @db.Decimal(12, 2)
+
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
+  type          PaymentType
+  method        PaymentMethod
+  currency      Currency
+  amount        Decimal       @db.Decimal(12, 2)
+  reference     String?       // M-Pesa/Tigo Pesa transaction code, bank ref, etc.
+  paidAt        DateTime      @default(now())
+  recordedById  String?
+  notes         String?
+
+  createdAt     DateTime      @default(now())
+
+  @@map("payments")
+}
+
+// ============================================================================
+// EXPENSES (per-trip profitability)
+// ============================================================================
+
+model Expense {
+  id           String          @id @default(cuid())
+  bookingId    String
+  booking      Booking         @relation(fields: [bookingId], references: [id])
+  category     ExpenseCategory
+  description  String?
+  amount       Decimal         @db.Decimal(12, 2)
+  currency     Currency        @default(TZS)
+  incurredAt   DateTime        @default(now())
+  receiptUrl   String?
+  recordedById String?
+
+  createdAt    DateTime        @default(now())
+
+  @@index([bookingId])
+  @@map("expenses")
+}
+
+// ============================================================================
+// FLEET & STAFF ALLOCATION
+// ============================================================================
+
+model Vehicle {
+  id                String        @id @default(cuid())
+  plateNumber       String        @unique
+  make              String
+  model             String
+  year              Int?
+  capacitySeats     Int
+  status            VehicleStatus @default(AVAILABLE)
+  insuranceExpiry   DateTime?
+  inspectionExpiry  DateTime?
+  lastServiceDate   DateTime?
+  nextServiceDueKm  Int?
+  currentOdometerKm Int?
+  notes             String?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  assignments       VehicleAssignment[]
+
+  @@map("vehicles")
+}
+
+model VehicleAssignment {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([vehicleId, startDate, endDate])
+  @@map("vehicle_assignments")
+}
+
+model StaffAssignment {
+  id             String              @id @default(cuid())
+  staffProfileId String
+  staffProfile   StaffProfile        @relation(fields: [staffProfileId], references: [id])
+  bookingId      String
+  booking        Booking             @relation(fields: [bookingId], references: [id])
+  role           StaffAssignmentRole
+  startDate      DateTime
+  endDate        DateTime
+  allowanceAmount Decimal?           @db.Decimal(12, 2)
+  allowanceCurrency Currency         @default(TZS)
+  notified       Boolean             @default(false)
+  notes          String?
+
+  createdAt      DateTime            @default(now())
+
+  @@index([staffProfileId, startDate, endDate])
+  @@map("staff_assignments")
+}
+
+// ============================================================================
+// MESSAGING & NOTIFICATION HUB
+// ============================================================================
+
+model Message {
+  id            String            @id @default(cuid())
+  clientId      String?
+  client        Client?           @relation(fields: [clientId], references: [id])
+  bookingId     String?
+  booking       Booking?          @relation(fields: [bookingId], references: [id])
+  sentById      String?
+  sentBy        User?             @relation("MessageSentBy", fields: [sentById], references: [id])
+
+  channel       MessageChannel
+  direction     MessageDirection
+  status        MessageStatus     @default(QUEUED)
+
+  toAddress     String            // phone (E.164) or email
+  fromAddress   String?
+  subject       String?           // email only
+  body          String
+  mediaUrl      String?
+
+  providerMessageId String?       // WhatsApp Cloud API / Twilio / Resend message id
+  errorMessage      String?
+
+  createdAt     DateTime          @default(now())
+  deliveredAt   DateTime?
+  readAt        DateTime?
+
+  @@index([clientId])
+  @@index([bookingId])
+  @@index([channel, direction])
+  @@map("messages")
+}
+
+// Queue of automated messages to be sent (booking confirmation, reminders, etc.)
+model ScheduledNotification {
+  id            String                  @id @default(cuid())
+  triggerType   NotificationTriggerType
+  channel       MessageChannel
+  clientId      String
+  client        Client                  @relation(fields: [clientId], references: [id])
+  bookingId     String?
+  booking       Booking?                @relation(fields: [bookingId], references: [id])
+  invoiceId     String?
+  invoice       Invoice?                @relation(fields: [invoiceId], references: [id])
+
+  scheduledFor  DateTime
+  status        NotificationStatus      @default(PENDING)
+  payload       Json?                   // template variables
+  sentAt        DateTime?
+  errorMessage  String?
+
+  createdAt     DateTime                @default(now())
+
+  @@index([status, scheduledFor])
+  @@map("scheduled_notifications")
+}
+
+// ============================================================================
+// DOCUMENTS (generated PDFs: itineraries, vouchers, invoices)
+// ============================================================================
+
+model Document {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  type        String   // "ITINERARY", "VOUCHER", "INVOICE", "RECEIPT"
+  fileUrl     String
+  generatedAt DateTime @default(now())
+
+  @@map("documents")
+}
