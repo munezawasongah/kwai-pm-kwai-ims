@@ -82,12 +82,25 @@ export default async function UsersPage() {
         </table>
       </Card>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="mb-2 mt-8 text-lg font-semibold text-brand">Access levels</h2>
+      <p className="mb-3 text-sm text-gray-500">
+        Click a role to see who holds it and assign staff to it.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Object.entries(ROLE_DESCRIPTIONS).map(([r, desc]) => (
-          <div key={r} className="rounded border bg-white p-4">
-            <p className="text-sm font-semibold text-brand">{r.replace(/_/g, " ")}</p>
+          <Link
+            key={r}
+            href={`/settings/roles/${r.toLowerCase()}`}
+            className="rounded border bg-white p-4 transition hover:border-brand hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-brand">{r.replace(/_/g, " ")}</p>
+              <span className="text-xs text-gray-400">
+                {users.filter((u) => u.role === r).length} &rarr;
+              </span>
+            </div>
             <p className="mt-1 text-xs text-gray-500">{desc}</p>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

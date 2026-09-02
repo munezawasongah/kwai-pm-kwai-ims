@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ALL_ROLES, CAPABILITY_GROUPS, PERMISSIONS, ROLE_DESCRIPTIONS } from "@/lib/permissions";
+import { ALL_ROLES, CAPABILITY_GROUPS, PERMISSIONS, ROLE_DESCRIPTIONS, roleHasCapability } from "@/lib/permissions";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
 /**
@@ -12,6 +13,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 export default async function PermissionsPage() {
   const session = await getServerSession(authOptions);
   const myRole = (session?.user as { role?: string } | undefined)?.role;
+  const canManageUsers = roleHasCapability(myRole, "users:read");
 
   return (
     <div className="p-8">
@@ -23,12 +25,24 @@ export default async function PermissionsPage() {
       </p>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ALL_ROLES.map((r) => (
-          <div key={r} className={`rounded border p-4 ${r === myRole ? "border-brand bg-brand/5" : "bg-white"}`}>
-            <p className="text-sm font-semibold text-brand">{r.replace(/_/g, " ")}</p>
-            <p className="mt-1 text-xs text-gray-500">{ROLE_DESCRIPTIONS[r]}</p>
-          </div>
-        ))}
+        {ALL_ROLES.map((r) => {
+          const card = (
+            <>
+              <p className="text-sm font-semibold text-brand">{r.replace(/_/g, " ")}</p>
+              <p className="mt-1 text-xs text-gray-500">{ROLE_DESCRIPTIONS[r]}</p>
+            </>
+          );
+          const cls = `rounded border p-4 ${r === myRole ? "border-brand bg-brand/5" : "bg-white"}`;
+
+          // Only administrators can manage role membership, so only they get a link.
+          return canManageUsers ? (
+            <Link key={r} href={`/settings/roles/${r.toLowerCase()}`} className={`${cls} transition hover:shadow-sm`}>
+              {card}
+            </Link>
+          ) : (
+            <div key={r} className={cls}>{card}</div>
+          );
+        })}
       </div>
 
       {CAPABILITY_GROUPS.map((group) => (
