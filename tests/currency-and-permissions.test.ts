@@ -100,3 +100,16 @@ test("an unknown or missing role is denied everything", () => {
   assert.equal(roleHasCapability(undefined, "clients:read"), false);
   assert.equal(roleHasCapability("NOT_A_ROLE", "clients:read"), false);
 });
+
+// --- user administration ----------------------------------------------------
+// Creating accounts and changing roles is how every other permission gets
+// granted, so it must be the narrowest capability in the system.
+
+test("only administrators can manage user accounts", () => {
+  assert.equal(roleHasCapability("ADMIN", "users:write"), true);
+  assert.equal(roleHasCapability("ADMIN", "users:read"), true);
+  for (const r of ["MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE"]) {
+    assert.equal(roleHasCapability(r, "users:write"), false, `${r} must not manage users`);
+    assert.equal(roleHasCapability(r, "users:read"), false, `${r} must not list users`);
+  }
+});

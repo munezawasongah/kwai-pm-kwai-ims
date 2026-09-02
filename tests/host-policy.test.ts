@@ -100,3 +100,12 @@ test("shared hosts are identified so no redirects apply to them", () => {
   assert.equal(isSharedHost("www.kwaipmkwaitravelandtours.com"), false);
   assert.equal(isSharedHost("ims.kwaipmkwaitravelandtours.com"), false);
 });
+
+test("settings and account pages are IMS paths, not public", () => {
+  for (const p of ["/settings/users", "/settings/permissions", "/settings/password",
+                   "/account", "/api/users", "/api/account/password"]) {
+    // /api paths are covered by route-policy; these check the host split only
+    if (p.startsWith("/api")) continue;
+    assert.equal(isImsPath(p), true, `${p} should be an IMS path`);
+  }
+});

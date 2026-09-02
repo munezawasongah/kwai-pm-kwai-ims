@@ -14,6 +14,14 @@ const NAV: { href: string; label: string; capability: Capability }[] = [
   { href: "/inbox", label: "Inbox", capability: "messages:read" },
   { href: "/fleet", label: "Fleet", capability: "fleet:read" },
   { href: "/staff", label: "Staff", capability: "staff:read" },
+  { href: "/settings/users", label: "Staff Accounts", capability: "users:read" },
+];
+
+// Always visible to any signed-in user — these act only on the user's own account
+// or show information that reveals no data.
+const PERSONAL_NAV = [
+  { href: "/settings/permissions", label: "Who sees what" },
+  { href: "/settings/password", label: "My Password" },
 ];
 
 export function Sidebar() {
@@ -47,6 +55,23 @@ export function Sidebar() {
             </Link>
           );
         })}
+        <div className="mt-4 border-t pt-3">
+          {PERSONAL_NAV.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "mb-1 block rounded px-3 py-2 text-xs font-medium",
+                  active ? "bg-brand text-white" : "text-gray-500 hover:bg-gray-100"
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </aside>
   );

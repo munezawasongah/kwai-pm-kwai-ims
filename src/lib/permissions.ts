@@ -48,7 +48,37 @@ export const PERMISSIONS = {
   // Messaging
   "messages:read": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS"],
   "messages:write": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS"],
+
+  // User administration. Deliberately ADMIN-only: creating accounts and changing
+  // roles is how every other permission in this file gets granted, so it must be
+  // the narrowest capability in the system.
+  "users:read": ["ADMIN"],
+  "users:write": ["ADMIN"],
 } as const;
+
+/** Human-readable labels for the permissions matrix shown in the UI. */
+export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+  ADMIN: "Full access, including creating staff accounts and changing roles.",
+  MANAGER: "All operations and financials. Cannot manage user accounts.",
+  SALES_AGENT: "Clients, bookings, quotes and messaging. Cannot record payments.",
+  OPERATIONS: "Bookings, itineraries, fleet, guide assignment and trip expenses.",
+  ACCOUNTANT: "Invoices, payments, expenses and profit. No fleet or messaging.",
+  DRIVER_GUIDE: "Own schedule only. No client lists, no financial data.",
+};
+
+export const ALL_ROLES: AppRole[] = [
+  "ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE",
+];
+
+/** Capabilities grouped for display, so staff can see who reaches what. */
+export const CAPABILITY_GROUPS: { label: string; capabilities: Capability[] }[] = [
+  { label: "Clients", capabilities: ["clients:read", "clients:write", "clients:delete"] },
+  { label: "Bookings", capabilities: ["bookings:read", "bookings:write", "itineraries:write"] },
+  { label: "Money", capabilities: ["invoices:read", "invoices:write", "payments:write", "expenses:write", "financials:read"] },
+  { label: "Operations", capabilities: ["fleet:read", "fleet:write", "staff:read", "staff:write"] },
+  { label: "Messaging", capabilities: ["messages:read", "messages:write"] },
+  { label: "Administration", capabilities: ["users:read", "users:write"] },
+];
 
 export type Capability = keyof typeof PERMISSIONS;
 

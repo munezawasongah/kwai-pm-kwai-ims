@@ -72,6 +72,8 @@ const IMS_PREFIXES = [
   "/inbox",
   "/fleet",
   "/staff",
+  "/settings",
+  "/account",
   "/login",
 ];
 
