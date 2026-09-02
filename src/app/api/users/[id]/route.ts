@@ -5,7 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { requireCapability } from "@/lib/authorization";
 
 const updateUserSchema = z.object({
-  role: z.enum(["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE"]).optional(),
+  role: z.enum(["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE", "STAFF"]).optional(),
+  jobTitle: z.string().min(1).max(80).optional(),
+  department: z.string().max(60).optional().nullable(),
+  employeeNumber: z.string().max(40).optional().nullable(),
+  startDate: z.coerce.date().optional().nullable(),
+  emergencyName: z.string().max(80).optional().nullable(),
+  emergencyPhone: z.string().max(40).optional().nullable(),
   isActive: z.boolean().optional(),
   phone: z.string().max(40).optional().nullable(),
   password: z.string().min(10, "Password must be at least 10 characters").optional(),
@@ -50,13 +56,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.role !== undefined && { role: d.role }),
       ...(d.isActive !== undefined && { isActive: d.isActive }),
       ...(d.phone !== undefined && { phone: d.phone }),
+      ...(d.jobTitle !== undefined && { jobTitle: d.jobTitle }),
+      ...(d.department !== undefined && { department: d.department }),
+      ...(d.employeeNumber !== undefined && { employeeNumber: d.employeeNumber }),
+      ...(d.startDate !== undefined && { startDate: d.startDate }),
+      ...(d.emergencyName !== undefined && { emergencyName: d.emergencyName }),
+      ...(d.emergencyPhone !== undefined && { emergencyPhone: d.emergencyPhone }),
       ...(d.password !== undefined && { passwordHash: await bcrypt.hash(d.password, 10) }),
       // Switching someone to driver/guide requires a staff profile to exist.
       ...(d.role === "DRIVER_GUIDE" && {
         staffProfile: { upsert: { create: {}, update: {} } },
       }),
     },
-    select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+    select: {
+      id: true, email: true, firstName: true, lastName: true,
+      role: true, isActive: true, jobTitle: true, department: true,
+    },
   });
 
   return NextResponse.json(user);

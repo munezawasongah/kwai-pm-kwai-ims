@@ -14,12 +14,15 @@ const NAV: { href: string; label: string; capability: Capability }[] = [
   { href: "/inbox", label: "Inbox", capability: "messages:read" },
   { href: "/fleet", label: "Fleet", capability: "fleet:read" },
   { href: "/staff", label: "Staff", capability: "staff:read" },
+  { href: "/hr/directory", label: "Staff Directory", capability: "directory:read" },
+  { href: "/hr/leave", label: "Leave Requests", capability: "hr:read" },
   { href: "/settings/users", label: "Staff Accounts", capability: "users:read" },
 ];
 
 // Always visible to any signed-in user — these act only on the user's own account
 // or show information that reveals no data.
 const PERSONAL_NAV = [
+  { href: "/settings/leave", label: "My Leave" },
   { href: "/settings/permissions", label: "Who sees what" },
   { href: "/settings/password", label: "My Password" },
 ];

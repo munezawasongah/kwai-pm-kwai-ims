@@ -20,6 +20,7 @@ export default async function UsersPage() {
     select: {
       id: true, email: true, firstName: true, lastName: true,
       phone: true, role: true, isActive: true, createdAt: true,
+      jobTitle: true, department: true, employeeNumber: true, startDate: true,
     },
   });
 
@@ -31,7 +32,9 @@ export default async function UsersPage() {
       </div>
       <p className="mb-6 text-sm text-gray-500">
         Each employee needs their own account — shared logins make it impossible to tell who
-        recorded a payment or changed a booking.{" "}
+        recorded a payment or changed a booking. <strong>Designation</strong> is the person&apos;s
+        job in the company; <strong>system access</strong> is what the software lets them open.
+        The two are set separately.{" "}
         <Link href="/settings/permissions" className="text-brand hover:underline">
           See what each role can access
         </Link>
@@ -43,16 +46,26 @@ export default async function UsersPage() {
           <thead className="border-b bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
               <th className="px-6 py-3">Name</th>
+              <th className="px-6 py-3">Designation</th>
               <th className="px-6 py-3">Email</th>
               <th className="px-6 py-3">Phone</th>
               <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3 text-right">Role &amp; actions</th>
+              <th className="px-6 py-3 text-right">System access &amp; actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className={`border-b last:border-0 ${u.isActive ? "" : "opacity-50"}`}>
-                <td className="px-6 py-3 font-medium">{u.firstName} {u.lastName}</td>
+                <td className="px-6 py-3">
+                  <div className="font-medium">{u.firstName} {u.lastName}</div>
+                  {u.employeeNumber && (
+                    <div className="text-xs text-gray-400">{u.employeeNumber}</div>
+                  )}
+                </td>
+                <td className="px-6 py-3">
+                  <div>{u.jobTitle ?? "—"}</div>
+                  {u.department && <div className="text-xs text-gray-400">{u.department}</div>}
+                </td>
                 <td className="px-6 py-3">{u.email}</td>
                 <td className="px-6 py-3">{u.phone ?? "—"}</td>
                 <td className="px-6 py-3">

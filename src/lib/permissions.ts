@@ -12,7 +12,9 @@ export type AppRole =
   | "SALES_AGENT"
   | "OPERATIONS"
   | "ACCOUNTANT"
-  | "DRIVER_GUIDE";
+  | "DRIVER_GUIDE"
+  | "HR"
+  | "STAFF";
 
 /**
  * Capability-keyed rather than role-keyed: routes ask "can this user record a payment?"
@@ -49,6 +51,14 @@ export const PERMISSIONS = {
   "messages:read": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS"],
   "messages:write": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS"],
 
+  // Human resources. The staff directory is visible to everyone — knowing who
+  // your colleagues are is not sensitive. Personnel records and leave decisions
+  // are restricted to HR and management.
+  "directory:read": ["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE", "HR", "STAFF"],
+  "hr:read": ["ADMIN", "MANAGER", "HR"],
+  "hr:write": ["ADMIN", "MANAGER", "HR"],
+  "leave:approve": ["ADMIN", "MANAGER", "HR"],
+
   // User administration. Deliberately ADMIN-only: creating accounts and changing
   // roles is how every other permission in this file gets granted, so it must be
   // the narrowest capability in the system.
@@ -64,10 +74,12 @@ export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   OPERATIONS: "Bookings, itineraries, fleet, guide assignment and trip expenses.",
   ACCOUNTANT: "Invoices, payments, expenses and profit. No fleet or messaging.",
   DRIVER_GUIDE: "Own schedule only. No client lists, no financial data.",
+  HR: "Staff directory, personnel records and leave approvals. No bookings, clients or financial data.",
+  STAFF: "Account only — can sign in and change their password. No access to bookings, clients or financial data. For employees who need a record but not operational access.",
 };
 
 export const ALL_ROLES: AppRole[] = [
-  "ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE",
+  "ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE", "HR", "STAFF",
 ];
 
 /** Capabilities grouped for display, so staff can see who reaches what. */
@@ -77,6 +89,7 @@ export const CAPABILITY_GROUPS: { label: string; capabilities: Capability[] }[] 
   { label: "Money", capabilities: ["invoices:read", "invoices:write", "payments:write", "expenses:write", "financials:read"] },
   { label: "Operations", capabilities: ["fleet:read", "fleet:write", "staff:read", "staff:write"] },
   { label: "Messaging", capabilities: ["messages:read", "messages:write"] },
+  { label: "People", capabilities: ["directory:read", "hr:read", "hr:write", "leave:approve"] },
   { label: "Administration", capabilities: ["users:read", "users:write"] },
 ];
 

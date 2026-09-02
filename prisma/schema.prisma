@@ -23,6 +23,8 @@ enum Role {
   OPERATIONS
   ACCOUNTANT
   DRIVER_GUIDE
+  HR
+  STAFF
 }
 
 enum ClientSource {
@@ -164,10 +166,29 @@ model User {
   role          Role     @default(SALES_AGENT)
   isActive      Boolean  @default(true)
   avatarUrl     String?
+
+  // Employment details. Distinct from `role`, which governs software permissions:
+  // jobTitle is what the person does in the company, role is what they may reach
+  // in this system. A CEO and an accountant may both be ADMIN; a cleaner has a
+  // job title but needs no operational access at all.
+  jobTitle       String?
+  department     String?
+  employeeNumber String?  @unique
+  startDate      DateTime?
+  nationalId     String?
+  emergencyName  String?
+  emergencyPhone String?
+
+  // Leave entitlement for the current cycle. Tanzania's Employment and Labour
+  // Relations Act sets a statutory minimum of 28 days annual leave; confirm the
+  // current figure with your HR adviser before relying on the default.
+  annualLeaveDays Int @default(28)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
+  leaveRequests      LeaveRequest[]     @relation("LeaveRequester")
+  leaveDecisions     LeaveRequest[]      @relation("LeaveDecidedBy")
   assignedBookings   Booking[]          @relation("AssignedAgent")
   createdInvoices    Invoice[]          @relation("InvoiceCreatedBy")
   sentMessages       Message[]          @relation("MessageSentBy")
@@ -564,4 +585,53 @@ model Document {
   generatedAt DateTime @default(now())
 
   @@map("documents")
+}
+
+
+// ============================================================================
+// HUMAN RESOURCES
+// ============================================================================
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  COMPASSIONATE
+  UNPAID
+  STUDY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
+
+  type         LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  // Working days requested. Stored rather than recomputed so a later change to
+  // the weekend or holiday rules cannot silently rewrite historical records.
+  days         Int
+  reason       String?
+
+  status       LeaveStatus @default(PENDING)
+  decidedById  String?
+  decidedBy    User?       @relation("LeaveDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  decisionNote String?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId, status])
+  @@index([startDate])
+  @@map("leave_requests")
 }

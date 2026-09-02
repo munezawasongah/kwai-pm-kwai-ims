@@ -9,8 +9,15 @@ const createUserSchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),
   phone: z.string().max(40).optional().or(z.literal("")),
-  role: z.enum(["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE"]),
+  role: z.enum(["ADMIN", "MANAGER", "SALES_AGENT", "OPERATIONS", "ACCOUNTANT", "DRIVER_GUIDE", "STAFF"]),
   password: z.string().min(10, "Password must be at least 10 characters"),
+  // Employment details — what the person does, as opposed to what the system lets them reach.
+  jobTitle: z.string().min(1, "Designation is required").max(80),
+  department: z.string().max(60).optional().or(z.literal("")),
+  employeeNumber: z.string().max(40).optional().or(z.literal("")),
+  startDate: z.coerce.date().optional().nullable(),
+  emergencyName: z.string().max(80).optional().or(z.literal("")),
+  emergencyPhone: z.string().max(40).optional().or(z.literal("")),
   // Driver/guide extras, only used when role is DRIVER_GUIDE
   licenseNumber: z.string().max(60).optional().or(z.literal("")),
   languagesSpoken: z.string().max(200).optional().or(z.literal("")),
@@ -60,6 +67,12 @@ export async function POST(req: NextRequest) {
       phone: d.phone || null,
       role: d.role,
       passwordHash,
+      jobTitle: d.jobTitle,
+      department: d.department || null,
+      employeeNumber: d.employeeNumber || null,
+      startDate: d.startDate ?? null,
+      emergencyName: d.emergencyName || null,
+      emergencyPhone: d.emergencyPhone || null,
       // A driver/guide needs a staff profile before they can be assigned to a trip.
       ...(d.role === "DRIVER_GUIDE" && {
         staffProfile: {
@@ -72,7 +85,10 @@ export async function POST(req: NextRequest) {
         },
       }),
     },
-    select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+    select: {
+      id: true, email: true, firstName: true, lastName: true,
+      role: true, isActive: true, jobTitle: true, department: true,
+    },
   });
 
   return NextResponse.json(user, { status: 201 });
