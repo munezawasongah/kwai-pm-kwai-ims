@@ -91,3 +91,78 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   return NextResponse.json(user);
 }
+
+/**
+ * Permanently delete a staff account.
+ *
+ * Only possible when the account has no linked business records. Once someone has
+ * handled a booking, raised an invoice, sent a client message or taken leave,
+ * deleting them would orphan or destroy those records — so deletion is refused and
+ * the caller is told to record a departure instead, which keeps the history intact.
+ *
+ * This exists mainly for correcting mistakes and clearing test accounts.
+ */
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const { session, denied } = await requireCapability("users:write");
+  if (denied) return denied;
+
+  const actorId = (session?.user as { id?: string } | undefined)?.id;
+
+  const target = await prisma.user.findUnique({
+    where: { id: params.id },
+    select: { id: true, role: true, firstName: true, lastName: true },
+  });
+  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  if (target.id === actorId) {
+    return NextResponse.json({ error: "You cannot delete your own account." }, { status: 409 });
+  }
+
+  if (target.role === "ADMIN") {
+    const otherAdmins = await prisma.user.count({
+      where: { role: "ADMIN", isActive: true, id: { not: target.id } },
+    });
+    if (otherAdmins === 0) {
+      return NextResponse.json(
+        { error: "This is the last administrator. Promote another admin first." },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Anything that would be orphaned or lost by deleting this account.
+  const [bookings, invoices, messages, leave, decisions, assignments] = await Promise.all([
+    prisma.booking.count({ where: { assignedAgentId: target.id } }),
+    prisma.invoice.count({ where: { createdById: target.id } }),
+    prisma.message.count({ where: { sentById: target.id } }),
+    prisma.leaveRequest.count({ where: { userId: target.id } }),
+    prisma.leaveRequest.count({ where: { decidedById: target.id } }),
+    prisma.staffAssignment.count({ where: { staffProfile: { userId: target.id } } }),
+  ]);
+
+  const blockers: string[] = [];
+  if (bookings) blockers.push(`${bookings} booking(s)`);
+  if (invoices) blockers.push(`${invoices} invoice(s)`);
+  if (messages) blockers.push(`${messages} client message(s)`);
+  if (leave) blockers.push(`${leave} leave request(s)`);
+  if (decisions) blockers.push(`${decisions} leave decision(s)`);
+  if (assignments) blockers.push(`${assignments} trip assignment(s)`);
+
+  if (blockers.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          `${target.firstName} ${target.lastName} is linked to ${blockers.join(", ")}. ` +
+          `Deleting would destroy that history. Record a departure instead — it removes their ` +
+          `access and moves them to Former, keeping the records intact.`,
+        blockers,
+      },
+      { status: 409 }
+    );
+  }
+
+  // staffProfile is removed by the cascade defined on the relation.
+  await prisma.user.delete({ where: { id: target.id } });
+
+  return NextResponse.json({ deleted: true });
+}

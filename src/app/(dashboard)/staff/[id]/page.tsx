@@ -9,6 +9,7 @@ import { annualLeaveBalance, leaveTypeLabel } from "@/lib/leave";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmploymentEditor } from "@/components/users/employment-editor";
+import { DeleteEmployee } from "@/components/users/delete-employee";
 
 export default async function EmployeePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -16,6 +17,7 @@ export default async function EmployeePage({ params }: { params: { id: string } 
   if (!roleHasCapability(role, "staff:read")) redirect("/dashboard");
 
   const canWrite = roleHasCapability(role, "staff:write");
+  const canDelete = roleHasCapability(role, "users:write");
 
   const employee = await prisma.user.findUnique({
     where: { id: params.id },
@@ -96,6 +98,24 @@ export default async function EmployeePage({ params }: { params: { id: string } 
               employmentStatus={employee.employmentStatus}
               contractEndDate={employee.contractEndDate ? employee.contractEndDate.toISOString().slice(0, 10) : null}
               annualLeaveDays={employee.annualLeaveDays}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {canDelete && (
+        <Card>
+          <CardHeader><h2 className="font-semibold">Delete record</h2></CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-xl text-sm text-gray-500">
+              Permanently removes this person and their account. Only possible if they have no
+              bookings, invoices, messages or leave attached — otherwise record a departure,
+              which keeps the history.
+            </p>
+            <DeleteEmployee
+              userId={employee.id}
+              fullName={`${employee.firstName} ${employee.lastName}`}
+              redirectTo="/staff"
             />
           </CardContent>
         </Card>

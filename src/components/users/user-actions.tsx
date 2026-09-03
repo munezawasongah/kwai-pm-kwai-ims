@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ALL_ROLES } from "@/lib/permissions";
+import { DeleteEmployee } from "@/components/users/delete-employee";
 
 export function UserActions({
   user,
 }: {
-  user: { id: string; email: string; role: string; isActive: boolean };
+  user: { id: string; email: string; role: string; isActive: boolean; fullName: string };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -65,6 +66,8 @@ export function UserActions({
       <Button size="sm" variant="ghost" disabled={busy} onClick={() => setResetOpen(true)}>
         Reset password
       </Button>
+
+      <DeleteEmployee userId={user.id} fullName={user.fullName} />
 
       <Dialog
         open={resetOpen}
